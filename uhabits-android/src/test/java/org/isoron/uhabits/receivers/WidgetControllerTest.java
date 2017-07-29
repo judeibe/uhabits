@@ -32,7 +32,7 @@ import static org.hamcrest.core.IsEqual.*;
 import static org.isoron.uhabits.core.models.Checkmark.*;
 import static org.mockito.Mockito.*;
 
-public class WidgetControllerTest extends BaseAndroidUnitTest
+public class WidgetControllerTest extends BaseAndroidJVMTest
 {
     private WidgetBehavior controller;
 
@@ -40,7 +40,7 @@ public class WidgetControllerTest extends BaseAndroidUnitTest
 
     private Habit habit;
 
-    private long today;
+    private Timestamp today;
 
     private NotificationTray notificationTray;
 
@@ -49,7 +49,7 @@ public class WidgetControllerTest extends BaseAndroidUnitTest
     {
         super.setUp();
 
-        today = DateUtils.getStartOfToday();
+        today = DateUtils.getToday();
         habit = fixtures.createEmptyHabit();
         commandRunner = mock(CommandRunner.class);
         notificationTray = mock(NotificationTray.class);

@@ -28,7 +28,7 @@ import org.junit.*;
 import org.junit.runner.*;
 
 @RunWith(AndroidJUnit4.class)
-@LargeTest
+@MediumTest
 public class PerformanceTest extends BaseAndroidTest
 {
     private Habit habit;
@@ -40,7 +40,7 @@ public class PerformanceTest extends BaseAndroidTest
         habit = fixtures.createLongHabit();
     }
 
-    @Test(timeout = 1000)
+    @Test(timeout = 4000)
     public void testRepeatedGetTodayValue()
     {
         for (int i = 0; i < 100000; i++)

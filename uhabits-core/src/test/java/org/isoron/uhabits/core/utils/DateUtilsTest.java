@@ -20,6 +20,7 @@
 package org.isoron.uhabits.core.utils;
 
 import org.isoron.uhabits.core.*;
+import org.isoron.uhabits.core.models.*;
 import org.junit.*;
 
 import java.util.*;
@@ -34,7 +35,7 @@ public class DateUtilsTest extends BaseUnitTest
     public void testFormatHeaderDate()
     {
         long timestamp = timestamp(2015, DECEMBER, 31);
-        GregorianCalendar date = DateUtils.getCalendar(timestamp);
+        GregorianCalendar date = new Timestamp(timestamp).toCalendar();
         String formatted = DateUtils.formatHeaderDate(date);
         assertThat(formatted, equalTo("Thu\n31"));
     }
@@ -136,15 +137,13 @@ public class DateUtilsTest extends BaseUnitTest
     }
 
     @Test
-    public void test_getDaysBetween()
+    public void testMillisecondsUntilTomorrow() throws Exception
     {
-        long t1 = timestamp(2016, JANUARY, 1);
-        long t2 = timestamp(2016, JANUARY, 10);
-        long t3 = timestamp(2016, DECEMBER, 31);
+        DateUtils.setFixedLocalTime(timestamp(2017, JANUARY, 1, 2, 59));
+        assertThat(DateUtils.millisecondsUntilTomorrow(), equalTo(60000L));
 
-        assertThat(DateUtils.getDaysBetween(t1, t1), equalTo(0));
-        assertThat(DateUtils.getDaysBetween(t1, t2), equalTo(9));
-        assertThat(DateUtils.getDaysBetween(t1, t3), equalTo(365));
-        assertThat(DateUtils.getDaysBetween(t3, t1), equalTo(365));
+        DateUtils.setFixedLocalTime(timestamp(2017, JANUARY, 1, 23, 0));
+        assertThat(DateUtils.millisecondsUntilTomorrow(), equalTo(14400000L));
+
     }
 }

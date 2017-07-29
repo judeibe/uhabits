@@ -27,9 +27,9 @@ import org.junit.*;
 
 import java.util.*;
 
+import static java.util.Calendar.*;
 import static junit.framework.TestCase.assertFalse;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.*;
 import static org.hamcrest.core.IsEqual.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -43,7 +43,7 @@ public class RepetitionListTest extends BaseUnitTest
     @NonNull
     private Habit habit;
 
-    private long today;
+    private Timestamp today;
 
     private long day;
 
@@ -58,14 +58,13 @@ public class RepetitionListTest extends BaseUnitTest
         habit = fixtures.createEmptyHabit();
         reps = habit.getRepetitions();
 
-        today = DateUtils.getStartOfToday();
-        day = DateUtils.millisecondsInOneDay;
+        today = DateUtils.getToday();
 
-        reps.toggle(today - 3 * day);
-        reps.toggle(today - 2 * day);
+        reps.toggle(today.minus(3));
+        reps.toggle(today.minus(2));
         reps.toggle(today);
-        reps.toggle(today - 7 * day);
-        reps.toggle(today - 5 * day);
+        reps.toggle(today.minus(7));
+        reps.toggle(today.minus(5));
 
         listener = mock(ModelObservable.Listener.class);
         reps.getObservable().addListener(listener);
@@ -82,19 +81,19 @@ public class RepetitionListTest extends BaseUnitTest
     @Test
     public void test_contains()
     {
-        assertThat(reps.containsTimestamp(today), is(true));
-        assertThat(reps.containsTimestamp(today - 2 * day), is(true));
-        assertThat(reps.containsTimestamp(today - 3 * day), is(true));
+        assertTrue(reps.containsTimestamp(today));
+        assertTrue(reps.containsTimestamp(today.minus(2)));
+        assertTrue(reps.containsTimestamp(today.minus(3)));
 
-        assertThat(reps.containsTimestamp(today - day), is(false));
-        assertThat(reps.containsTimestamp(today - 4 * day), is(false));
+        assertFalse(reps.containsTimestamp(today.minus(1)));
+        assertFalse(reps.containsTimestamp(today.minus(4)));
     }
 
     @Test
     public void test_getOldest()
     {
         Repetition rep = reps.getOldest();
-        assertThat(rep.getTimestamp(), is(equalTo(today - 7 * day)));
+        assertThat(rep.getTimestamp(), equalTo(today.minus(7)));
     }
 
     @Test
@@ -103,23 +102,20 @@ public class RepetitionListTest extends BaseUnitTest
         habit = fixtures.createEmptyHabit();
         reps = habit.getRepetitions();
 
-        Random random = new Random();
+        Random random = new Random(123L);
         Integer weekdayCount[][] = new Integer[12][7];
         Integer monthCount[] = new Integer[12];
 
         Arrays.fill(monthCount, 0);
-        for (Integer row[] : weekdayCount)
-            Arrays.fill(row, 0);
-
+        for (Integer row[] : weekdayCount) Arrays.fill(row, 0);
         GregorianCalendar day = DateUtils.getStartOfTodayCalendar();
 
         // Sets the current date to the end of November
-        day.set(2015, 10, 30);
+        day.set(2015, NOVEMBER, 30, 12, 0, 0);
         DateUtils.setFixedLocalTime(day.getTimeInMillis());
 
         // Add repetitions randomly from January to December
-        // Leaves the month of March empty, to check that it returns null
-        day.set(2015, 0, 1);
+        day.set(2015, JANUARY, 1, 0, 0, 0);
         for (int i = 0; i < 365; i++)
         {
             if (random.nextBoolean())
@@ -127,35 +123,35 @@ public class RepetitionListTest extends BaseUnitTest
                 int month = day.get(Calendar.MONTH);
                 int week = day.get(Calendar.DAY_OF_WEEK) % 7;
 
-                if (month != 2)
-                {
-                    if (month <= 10)
-                    {
-                        weekdayCount[month][week]++;
-                        monthCount[month]++;
-                    }
-                    reps.toggle(day.getTimeInMillis());
-                }
+                // Leave the month of March empty, to check that it returns null
+                if (month == MARCH) continue;
+
+                reps.toggle(new Timestamp(day));
+
+                // Repetitions in December should not be counted
+                if (month == DECEMBER) continue;
+
+                weekdayCount[month][week]++;
+                monthCount[month]++;
             }
 
             day.add(Calendar.DAY_OF_YEAR, 1);
         }
 
-        HashMap<Long, Integer[]> freq =
-            reps.getWeekdayFrequency();
+        HashMap<Timestamp, Integer[]> freq = reps.getWeekdayFrequency();
 
         // Repetitions until November should be counted correctly
         for (int month = 0; month < 11; month++)
         {
-            day.set(2015, month, 1);
-            Integer actualCount[] = freq.get(day.getTimeInMillis());
+            day.set(2015, month, 1, 0, 0, 0);
+            Integer actualCount[] = freq.get(new Timestamp(day));
             if (monthCount[month] == 0) assertThat(actualCount, equalTo(null));
             else assertThat(actualCount, equalTo(weekdayCount[month]));
         }
 
         // Repetitions in December should be discarded
-        day.set(2015, 11, 1);
-        assertThat(freq.get(day.getTimeInMillis()), equalTo(null));
+        day.set(2015, DECEMBER, 1, 0, 0, 0);
+        assertThat(freq.get(new Timestamp(day)), equalTo(null));
     }
 
     @Test
@@ -167,9 +163,9 @@ public class RepetitionListTest extends BaseUnitTest
         verify(listener).onModelChange();
         reset(listener);
 
-        assertFalse(reps.containsTimestamp(today - day));
-        reps.toggle(today - day);
-        assertTrue(reps.containsTimestamp(today - day));
+        assertFalse(reps.containsTimestamp(today.minus(1)));
+        reps.toggle(today.minus(1));
+        assertTrue(reps.containsTimestamp(today.minus(1)));
         verify(listener).onModelChange();
         reset(listener);
 
@@ -187,5 +183,12 @@ public class RepetitionListTest extends BaseUnitTest
         assertThat(check.getValue(), equalTo(500));
         verify(listener, times(2)).onModelChange();
         reset(listener);
+    }
+
+    @Test
+    public void testToString() throws Exception
+    {
+        Repetition rep = new Repetition(Timestamp.ZERO.plus(100), 20);
+        assertThat(rep.toString(), equalTo("{timestamp: {unixTime: 8640000000}, value: 20}"));
     }
 }

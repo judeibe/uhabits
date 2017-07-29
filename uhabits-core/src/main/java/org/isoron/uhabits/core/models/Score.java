@@ -22,6 +22,7 @@ package org.isoron.uhabits.core.models;
 import org.apache.commons.lang3.builder.*;
 
 import static java.lang.Math.*;
+import static org.isoron.uhabits.core.utils.StringUtils.defaultToStringStyle;
 
 /**
  * Represents how strong a habit is at a certain date.
@@ -32,14 +33,14 @@ public final class Score
      * Timestamp of the day to which this score applies. Time of day should be
      * midnight (UTC).
      */
-    private final long timestamp;
+    private final Timestamp timestamp;
 
     /**
      * Value of the score.
      */
     private final double value;
 
-    public Score(long timestamp, double value)
+    public Score(Timestamp timestamp, double value)
     {
         this.timestamp = timestamp;
         this.value = value;
@@ -72,10 +73,10 @@ public final class Score
 
     public int compareNewer(Score other)
     {
-        return Long.signum(this.getTimestamp() - other.getTimestamp());
+        return getTimestamp().compare(other.getTimestamp());
     }
 
-    public long getTimestamp()
+    public Timestamp getTimestamp()
     {
         return timestamp;
     }
@@ -88,9 +89,33 @@ public final class Score
     @Override
     public String toString()
     {
-        return new ToStringBuilder(this)
+        return new ToStringBuilder(this, defaultToStringStyle())
             .append("timestamp", timestamp)
             .append("value", value)
             .toString();
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Score score = (Score) o;
+
+        return new EqualsBuilder()
+            .append(value, score.value)
+            .append(timestamp, score.timestamp)
+            .isEquals();
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return new HashCodeBuilder(17, 37)
+            .append(timestamp)
+            .append(value)
+            .toHashCode();
     }
 }

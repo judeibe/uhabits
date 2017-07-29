@@ -78,7 +78,8 @@ public class HabitCardListAdapter
         this.midnightTimer = midnightTimer;
 
         cache.setListener(this);
-        cache.setCheckmarkCount(ListHabitsRootView.MAX_CHECKMARK_COUNT);
+        cache.setCheckmarkCount(
+            ListHabitsRootViewKt.MAX_CHECKMARK_COUNT);
         cache.setOrder(preferences.getDefaultOrder());
 
         setHasStableIds(true);
@@ -110,11 +111,10 @@ public class HabitCardListAdapter
      * Returns the item that occupies a certain position on the list
      *
      * @param position position of the item
-     * @return the item at given position
-     * @throws IndexOutOfBoundsException if position is not valid
+     * @return the item at given position or null if position is invalid
      */
     @Deprecated
-    @NonNull
+    @Nullable
     public Habit getItem(int position)
     {
         return cache.getHabitByPosition(position);
@@ -203,7 +203,7 @@ public class HabitCardListAdapter
                                                   int viewType)
     {
         if (listView == null) return null;
-        View view = listView.createCardView();
+        View view = listView.createHabitCardView();
         return new HabitCardViewHolder(view);
     }
 
@@ -324,6 +324,8 @@ public class HabitCardListAdapter
     public void toggleSelection(int position)
     {
         Habit h = getItem(position);
+        if (h == null) return;
+
         int k = selected.indexOf(h);
         if (k < 0) selected.add(h);
         else selected.remove(h);

@@ -19,9 +19,7 @@
 -->
 <manifest
     package="org.isoron.uhabits"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:versionCode="32"
-    android:versionName="1.7.5">
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.VIBRATE"/>
 
@@ -181,13 +179,6 @@
                 <data
                     android:host="org.isoron.uhabits"
                     android:scheme="content"/>
-            </intent-filter>
-        </receiver>
-
-        <!-- Pebble -->
-        <receiver android:name=".receivers.PebbleReceiver">
-            <intent-filter>
-                <action android:name="com.getpebble.action.app.RECEIVE"/>
             </intent-filter>
         </receiver>
 

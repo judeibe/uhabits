@@ -62,7 +62,7 @@ public class LoopDBImporter extends AbstractImporter
         boolean canHandle = true;
 
         Cursor c = db.query("select count(*) from SQLITE_MASTER " +
-                            "where name='Checkmarks' or name='Repetitions'");
+                            "where name='Habits' or name='Repetitions'");
 
         if (!c.moveToNext() || c.getInt(0) != 2)
         {
@@ -109,7 +109,7 @@ public class LoopDBImporter extends AbstractImporter
                     habitRecord.id.toString());
 
             for (RepetitionRecord r : reps)
-                h.getRepetitions().toggle(r.timestamp, r.value);
+                h.getRepetitions().toggle(new Timestamp(r.timestamp), r.value);
         }
     }
 }

@@ -23,6 +23,8 @@ import org.isoron.uhabits.core.*;
 import org.junit.*;
 import org.junit.rules.*;
 
+import nl.jqno.equalsverifier.*;
+
 import static org.hamcrest.CoreMatchers.*;
 import static org.isoron.uhabits.core.utils.DateUtils.*;
 import static org.junit.Assert.*;
@@ -87,7 +89,7 @@ public class HabitTest extends BaseUnitTest
     {
         Habit h = modelFactory.buildHabit();
         assertFalse(h.isCompletedToday());
-        h.getRepetitions().toggle(getStartOfToday());
+        h.getRepetitions().toggle(getToday());
         assertTrue(h.isCompletedToday());
     }
 
@@ -100,19 +102,19 @@ public class HabitTest extends BaseUnitTest
         h.setTargetValue(100.0);
         assertFalse(h.isCompletedToday());
 
-        h.getRepetitions().toggle(getStartOfToday(), 200);
+        h.getRepetitions().toggle(getToday(), 200);
         assertTrue(h.isCompletedToday());
-        h.getRepetitions().toggle(getStartOfToday(), 100);
+        h.getRepetitions().toggle(getToday(), 100);
         assertTrue(h.isCompletedToday());
-        h.getRepetitions().toggle(getStartOfToday(), 50);
+        h.getRepetitions().toggle(getToday(), 50);
         assertFalse(h.isCompletedToday());
 
         h.setTargetType(Habit.AT_MOST);
-        h.getRepetitions().toggle(getStartOfToday(), 200);
+        h.getRepetitions().toggle(getToday(), 200);
         assertFalse(h.isCompletedToday());
-        h.getRepetitions().toggle(getStartOfToday(), 100);
+        h.getRepetitions().toggle(getToday(), 100);
         assertTrue(h.isCompletedToday());
-        h.getRepetitions().toggle(getStartOfToday(), 50);
+        h.getRepetitions().toggle(getToday(), 50);
         assertTrue(h.isCompletedToday());
     }
 
@@ -125,5 +127,36 @@ public class HabitTest extends BaseUnitTest
         assertThat(h.getId(), equalTo(0L));
         assertThat(h.getUriString(),
             equalTo("content://org.isoron.uhabits/habit/0"));
+    }
+
+    @Test
+    public void testEquals() throws Exception
+    {
+        EqualsVerifier
+            .forClass(Habit.HabitData.class)
+            .suppress(Warning.NONFINAL_FIELDS)
+            .verify();
+
+        EqualsVerifier.forClass(Repetition.class).verify();
+        EqualsVerifier.forClass(Score.class).verify();
+        EqualsVerifier.forClass(Streak.class).verify();
+        EqualsVerifier.forClass(Reminder.class).verify();
+        EqualsVerifier.forClass(WeekdayList.class).verify();
+    }
+
+    @Test
+    public void testToString() throws Exception
+    {
+        Habit h = modelFactory.buildHabit();
+        h.setReminder(new Reminder(22, 30, WeekdayList.EVERY_DAY));
+        String expected = "{id: <null>, data: {name: , description: ," +
+                          " frequency: {numerator: 3, denominator: 7}," +
+                          " color: 8, archived: false, targetType: 0," +
+                          " targetValue: 100.0, type: 0, unit: ," +
+                          " reminder: {hour: 22, minute: 30," +
+                          " days: {weekdays: [true,true,true,true,true,true,true]}}," +
+                          " position: 0}}";
+
+        assertThat(h.toString(), equalTo(expected));
     }
 }

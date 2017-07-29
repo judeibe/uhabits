@@ -26,17 +26,17 @@ import org.junit.*;
 import java.io.*;
 import java.util.*;
 
+import nl.jqno.equalsverifier.*;
+
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.core.IsEqual.*;
-import static org.isoron.uhabits.core.models.Checkmark.CHECKED_EXPLICITLY;
-import static org.isoron.uhabits.core.models.Checkmark.CHECKED_IMPLICITLY;
-import static org.isoron.uhabits.core.models.Checkmark.UNCHECKED;
+import static org.isoron.uhabits.core.models.Checkmark.*;
 
 public class CheckmarkListTest extends BaseUnitTest
 {
     private long dayLength;
 
-    private long today;
+    private Timestamp today;
 
     private Habit nonDailyHabit;
 
@@ -49,9 +49,6 @@ public class CheckmarkListTest extends BaseUnitTest
     {
         super.setUp();
 
-        dayLength = DateUtils.millisecondsInOneDay;
-        today = DateUtils.getStartOfToday();
-
         nonDailyHabit = fixtures.createShortHabit();
         habitList.add(nonDailyHabit);
 
@@ -60,6 +57,7 @@ public class CheckmarkListTest extends BaseUnitTest
 
         numericalHabit = fixtures.createNumericalHabit();
         habitList.add(numericalHabit);
+        today = DateUtils.getToday();
     }
 
     @Test
@@ -281,15 +279,17 @@ public class CheckmarkListTest extends BaseUnitTest
     @Test
     public void test_getValues_withInvalidInterval()
     {
-        int values[] = nonDailyHabit.getCheckmarks().getValues(100L, -100L);
+        int values[] = nonDailyHabit
+            .getCheckmarks()
+            .getValues(new Timestamp(0L).plus(100), new Timestamp(0L));
         assertThat(values, equalTo(new int[0]));
     }
 
     @Test
     public void test_getValues_withValidInterval()
     {
-        long from = today - 15 * dayLength;
-        long to = today - 5 * dayLength;
+        Timestamp from = today.minus(15);
+        Timestamp to = today.minus(5);
 
         int[] expectedValues = {
             CHECKED_EXPLICITLY,
@@ -306,7 +306,6 @@ public class CheckmarkListTest extends BaseUnitTest
         };
 
         int[] actualValues = nonDailyHabit.getCheckmarks().getValues(from, to);
-
         assertThat(actualValues, equalTo(expectedValues));
     }
 
@@ -344,15 +343,37 @@ public class CheckmarkListTest extends BaseUnitTest
         assertThat(writer.toString(), equalTo(expectedCSV));
     }
 
-    private long day(int offset)
+    private Timestamp day(int offset)
     {
-        return DateUtils.getStartOfToday() -
-               offset * DateUtils.millisecondsInOneDay;
+        return DateUtils.getToday().minus(offset);
     }
 
     private void travelInTime(int days)
     {
         DateUtils.setFixedLocalTime(
-            FIXED_LOCAL_TIME + days * DateUtils.millisecondsInOneDay);
+            FIXED_LOCAL_TIME + days * Timestamp.DAY_LENGTH);
+    }
+
+    @Test
+    public void testToString() throws Exception
+    {
+        Timestamp t = Timestamp.ZERO.plus(100);
+        Checkmark checkmark = new Checkmark(t, 2);
+        assertThat(checkmark.toString(),
+            equalTo("{timestamp: {unixTime: 8640000000}, value: 2}"));
+
+        CheckmarkList.Interval interval =
+            new CheckmarkList.Interval(t, t.plus(1), t.plus(2));
+        assertThat(interval.toString(), equalTo(
+            "{begin: {unixTime: 8640000000}, center: {unixTime: 8726400000}," +
+            " end: {unixTime: 8812800000}}"));
+    }
+
+    @Test
+    public void testEquals() throws Exception
+    {
+        EqualsVerifier.forClass(Checkmark.class).verify();
+        EqualsVerifier.forClass(Timestamp.class).verify();
+        EqualsVerifier.forClass(CheckmarkList.Interval.class).verify();
     }
 }

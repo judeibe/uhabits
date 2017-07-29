@@ -19,20 +19,35 @@
 
 package org.isoron.uhabits.core.utils;
 
+import android.support.annotation.*;
+
+import org.isoron.uhabits.core.models.*;
+
 import java.util.*;
 
 import static java.util.Calendar.*;
 
 public abstract class DateUtils
 {
+
     private static Long fixedLocalTime = null;
 
     private static TimeZone fixedTimeZone = null;
 
     /**
+     * Time of the day when the new day starts.
+     */
+    public static final int NEW_DAY_OFFSET = 3;
+
+    /**
      * Number of milliseconds in one day.
      */
-    public static long millisecondsInOneDay = 24 * 60 * 60 * 1000;
+    public static final long DAY_LENGTH = 24 * 60 * 60 * 1000;
+
+    /**
+     * Number of milliseconds in one hour.
+     */
+    public static final long HOUR_LENGTH = 60 * 60 * 1000;
 
     public static long applyTimezone(long localTimestamp)
     {
@@ -49,7 +64,7 @@ public abstract class DateUtils
         return dayOfWeek + "\n" + dayOfMonth;
     }
 
-    public static GregorianCalendar getCalendar(long timestamp)
+    private static GregorianCalendar getCalendar(long timestamp)
     {
         GregorianCalendar day =
             new GregorianCalendar(TimeZone.getTimeZone("GMT"));
@@ -57,7 +72,7 @@ public abstract class DateUtils
         return day;
     }
 
-    public static String[] getDayNames(int format)
+    private static String[] getDayNames(int format)
     {
         String[] wdays = new String[7];
 
@@ -130,19 +145,26 @@ public abstract class DateUtils
         return getDayNames(SHORT);
     }
 
+    @NonNull
+    public static Timestamp getToday()
+    {
+        return new Timestamp(getStartOfToday());
+    }
+
     public static long getStartOfDay(long timestamp)
     {
-        return (timestamp / millisecondsInOneDay) * millisecondsInOneDay;
+        return (timestamp / DAY_LENGTH) * DAY_LENGTH;
     }
 
     public static long getStartOfToday()
     {
-        return getStartOfDay(DateUtils.getLocalTime());
+        return getStartOfDay(getLocalTime() - NEW_DAY_OFFSET * HOUR_LENGTH);
     }
 
     public static long millisecondsUntilTomorrow()
     {
-        return getStartOfToday() + millisecondsInOneDay - getLocalTime();
+        return getStartOfToday() + DAY_LENGTH -
+               (getLocalTime() - NEW_DAY_OFFSET * HOUR_LENGTH);
     }
 
     public static GregorianCalendar getStartOfTodayCalendar()
@@ -150,7 +172,7 @@ public abstract class DateUtils
         return getCalendar(getStartOfToday());
     }
 
-    public static TimeZone getTimezone()
+    private static TimeZone getTimezone()
     {
         if(fixedTimeZone != null) return fixedTimeZone;
         return TimeZone.getDefault();
@@ -159,25 +181,6 @@ public abstract class DateUtils
     public static void setFixedTimeZone(TimeZone tz)
     {
         fixedTimeZone = tz;
-    }
-
-    public static int getWeekday(long timestamp)
-    {
-        GregorianCalendar day = getCalendar(timestamp);
-        return javaWeekdayToLoopWeekday(day.get(DAY_OF_WEEK));
-    }
-
-    /**
-     * Throughout the code, it is assumed that the weekdays are numbered from 0
-     * (Saturday) to 6 (Friday). In the Java Calendar they are numbered from 1
-     * (Sunday) to 7 (Saturday). This function converts from Java to our
-     * internal representation.
-     *
-     * @return weekday number in the internal interpretation
-     */
-    public static int javaWeekdayToLoopWeekday(int number)
-    {
-        return number % 7;
     }
 
     public static long removeTimezone(long timestamp)
@@ -229,19 +232,5 @@ public abstract class DateUtils
     public enum TruncateField
     {
         MONTH, WEEK_NUMBER, YEAR, QUARTER
-    }
-
-    /**
-     * Gets the number of days between two timestamps (exclusively).
-     *
-     * @param t1 the first timestamp to use in milliseconds
-     * @param t2 the second timestamp to use in milliseconds
-     * @return the number of days between the two timestamps
-     */
-    public static int getDaysBetween(long t1, long t2)
-    {
-        Date d1 = new Date(t1);
-        Date d2 = new Date(t2);
-        return (int) (Math.abs((d2.getTime() - d1.getTime()) / millisecondsInOneDay));
     }
 }

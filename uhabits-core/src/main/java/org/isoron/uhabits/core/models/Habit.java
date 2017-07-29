@@ -29,6 +29,7 @@ import javax.annotation.concurrent.*;
 import javax.inject.*;
 
 import static org.isoron.uhabits.core.models.Checkmark.*;
+import static org.isoron.uhabits.core.utils.StringUtils.defaultToStringStyle;
 
 /**
  * The thing that the user wants to track.
@@ -303,7 +304,7 @@ public class Habit
         return data.reminder != null;
     }
 
-    public void invalidateNewerThan(long timestamp)
+    public void invalidateNewerThan(Timestamp timestamp)
     {
         getScores().invalidateNewerThan(timestamp);
         getCheckmarks().invalidateNewerThan(timestamp);
@@ -353,7 +354,7 @@ public class Habit
         data.position = newPosition;
     }
 
-    public static class HabitData
+    public static final class HabitData
     {
         @NonNull
         public String name;
@@ -414,7 +415,7 @@ public class Habit
         @Override
         public String toString()
         {
-            return new ToStringBuilder(this)
+            return new ToStringBuilder(this, defaultToStringStyle())
                 .append("name", name)
                 .append("description", description)
                 .append("frequency", frequency)
@@ -470,5 +471,14 @@ public class Habit
                 .append(position)
                 .toHashCode();
         }
+    }
+
+    @Override
+    public String toString()
+    {
+        return new ToStringBuilder(this, defaultToStringStyle())
+            .append("id", id)
+            .append("data", data)
+            .toString();
     }
 }

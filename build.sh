@@ -21,11 +21,6 @@ GRADLE="./gradlew --stacktrace"
 PACKAGE_NAME=org.isoron.uhabits
 OUTPUTS_DIR=uhabits-android/build/outputs
 
-KEYFILE="TestKeystore.jks"
-KEY_ALIAS="default"
-KEY_PASSWORD="qwe123" 
-STORE_PASSWORD="qwe123"
-
 if [ ! -f "${ANDROID_HOME}/platform-tools/adb" ]; then
 	echo "Error: ANDROID_HOME is not set correctly"
 	exit 1
@@ -61,10 +56,9 @@ fail() {
 }
 
 start_emulator() {
-	log_info "Starting emulator"
+	log_info "Starting emulator ($AVD_NAME)"
 	$EMULATOR -avd ${AVD_NAME} -port ${AVD_SERIAL} -no-audio -no-window &
-	$ADB wait-for-device || fail
-	sleep 10
+	$ADB wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
 }
 
 stop_emulator() {
@@ -84,9 +78,13 @@ run_adb_as_root() {
 
 build_apk() {
 	if [ ! -z $RELEASE ]; then
+		if [ -z "$KEY_FILE" -o -z "$STORE_PASSWORD" -o -z "$KEY_ALIAS" -o -z "$KEY_PASSWORD" ]; then
+			log_error "Environment variables KEY_FILE, KEY_ALIAS, KEY_PASSWORD and STORE_PASSWORD must be defined"
+			exit 1
+		fi
 		log_info "Building release APK"
 		./gradlew assembleRelease \
-			-Pandroid.injected.signing.store.file=$KEYFILE \
+			-Pandroid.injected.signing.store.file=$KEY_FILE \
 			-Pandroid.injected.signing.store.password=$STORE_PASSWORD \
 			-Pandroid.injected.signing.key.alias=$KEY_ALIAS \
 			-Pandroid.injected.signing.key.password=$KEY_PASSWORD || fail
@@ -100,7 +98,7 @@ build_instrumentation_apk() {
 	log_info "Building instrumentation APK"
 	if [ ! -z $RELEASE ]; then
 		$GRADLE assembleAndroidTest  \
-			-Pandroid.injected.signing.store.file=$KEYFILE \
+			-Pandroid.injected.signing.store.file=$KEY_FILE \
 			-Pandroid.injected.signing.store.password=$STORE_PASSWORD \
 			-Pandroid.injected.signing.key.alias=$KEY_ALIAS \
 			-Pandroid.injected.signing.key.password=$KEY_PASSWORD || fail
@@ -141,6 +139,10 @@ install_apk() {
 }
 
 install_test_apk() {
+	log_info "Uninstalling existing test APK"
+	$ADB uninstall ${PACKAGE_NAME}.test
+
+	log_info "Installing test APK"
 	$ADB install -r ${OUTPUTS_DIR}/apk/androidTest/debug/uhabits-android-debug-androidTest.apk || fail
 }
 
@@ -163,12 +165,10 @@ parse_instrumentation_results() {
 }
 
 generate_coverage_badge() {
-	log_info "Generating code coverage report and badge"
-	$GRADLE coverageReport	|| fail
-
-	ANDROID_REPORT=uhabits-android/build/reports/jacoco/coverageReport/coverageReport.xml
+	log_info "Generating code coverage badge"
 	CORE_REPORT=uhabits-core/build/reports/jacoco/test/jacocoTestReport.xml
-	python tools/coverage-badge/badge.py -i $ANDROID_REPORT:$CORE_REPORT -o ${OUTPUTS_DIR}/coverage-badge
+	rm -f ${OUTPUTS_DIR}/coverage-badge.svg
+	python tools/coverage-badge/badge.py -i $CORE_REPORT -o ${OUTPUTS_DIR}/coverage-badge
 }
 
 fetch_artifacts() {
@@ -190,29 +190,45 @@ fetch_logcat() {
 
 run_jvm_tests() {
 	log_info "Running JVM tests"
-	$GRADLE testDebugUnitTest :uhabits-core:check || fail
+	if [ ! -z $RELEASE ]; then
+		$GRADLE testReleaseUnitTest :uhabits-core:check || fail
+	else
+		$GRADLE testDebugUnitTest :uhabits-core:check || fail
+	fi
 }
 
 uninstall_test_apk() {
 	log_info "Uninstalling test APK"
-	$ADB uninstall ${PACKAGE_NAME}.test || fail
+	$ADB uninstall ${PACKAGE_NAME}.test
+}
+
+fetch_images() {
+	rm -rf tmp/test-screenshots > /dev/null
+	mkdir -p tmp/
+	$ADB pull /mnt/sdcard/test-screenshots/ tmp/
+	$ADB pull /storage/sdcard/test-screenshots/ tmp/
+	$ADB pull /sdcard/Android/data/${PACKAGE_NAME}/files/test-screenshots/ tmp/
+
+	$ADB shell rm -r /mnt/sdcard/test-screenshots/ 
+	$ADB shell rm -r /storage/sdcard/test-screenshots/ 
+	$ADB shell rm -r /sdcard/Android/data/${PACKAGE_NAME}/files/test-screenshots/ 
+}
+
+accept_images() {
+	find tmp/test-screenshots -name '*.expected*' -delete
+	rsync -av tmp/test-screenshots/ uhabits-android/src/androidTest/assets/
 }
 
 run_local_tests() {
-	clean_output_dir
+	#clean_output_dir
 	run_adb_as_root
-	build_apk
-	build_instrumentation_apk
 	install_test_butler
 	install_apk
-    uninstall_test_apk
 	install_test_apk
 	run_instrumented_tests
 	parse_instrumentation_results
 	fetch_artifacts
 	fetch_logcat
-	run_jvm_tests
-	generate_coverage_badge
 	uninstall_test_apk
 }
 
@@ -231,18 +247,27 @@ parse_opts() {
 }
 
 case "$1" in
+	build)
+		shift; parse_opts $*
+
+		build_apk
+		build_instrumentation_apk
+		run_jvm_tests
+		generate_coverage_badge
+		;;
+
 	ci-tests)
 		if [ -z $3 ]; then
 			cat <<- END
 				Usage: $0 ci-tests AVD_NAME AVD_SERIAL [options]
 
 				Parameters:
-				    AVD_NAME		name of the virtual android device to start
-				    AVD_SERIAL		adb port to use (e.g. 5560)
+				    AVD_NAME    name of the virtual android device to start
+				    AVD_SERIAL  adb port to use (e.g. 5560)
 
 				Options:
-				    -u  --uninstall-first   Uninstall existing APK first
-				    -r  --release           Build and install release version, instead of debug
+				    -u  --uninstall-first  Uninstall existing APK first
+				    -r  --release          Build and install release version, instead of debug
 			END
 			exit 1
 		fi
@@ -263,6 +288,14 @@ case "$1" in
 		run_local_tests
 		;;
 
+	fetch-images)
+		fetch_images
+		;;
+
+	accept-images)
+		accept_images
+		;;
+
 	install)
 		shift; parse_opts $*
 		build_apk
@@ -275,9 +308,11 @@ case "$1" in
 			Builds, installs and tests Loop Habit Tracker
 
 			Commands:
-			    ci-tests            Start emulator silently, run tests then kill emulator
-			    local-tests         Run all tests on connected device
-			    install             Install app on connected device
+			    ci-tests      Start emulator silently, run tests then kill emulator
+			    local-tests   Run all tests on connected device
+			    install       Install app on connected device
+			    fetch-images  Fetches failed view test images from device
+			    accept-images Copies fetched images to corresponding assets folder
 
 			Options:
 			    -u  --uninstall-first   Uninstall existing APK first

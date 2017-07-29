@@ -23,3 +23,5 @@ gen/
 local.properties
 crowdin.yaml
 local
+tmp/
+secret/

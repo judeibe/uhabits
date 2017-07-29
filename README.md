@@ -1,10 +1,16 @@
 # Loop Habit Tracker
 
-<a href="http://build.loophabits.org:26213/project.html?projectId=LoopHabitTracker&tab=projectOverview&guest=1">
-  <img src="http://build.loophabits.org:26213/app/rest/builds/buildType(id:LoopHabitTracker_Nougat)/statusIcon">
+<a href="https://build.loophabits.org/project.html?projectId=LoopHabitTracker&tab=projectOverview&guest=1">
+  <img src="https://img.shields.io/teamcity/https/build.loophabits.org/s/release.svg">
 </a>
-<a href="http://build.loophabits.org:26213/project.html?projectId=LoopHabitTracker&tab=preport_project1_Code_Coverage&branch_LoopHabitTracker=__all_branches__&guest=1">
-  <img src="http://build.loophabits.org:26213/app/rest/builds/buildType(id:LoopHabitTracker_Nougat)/artifacts/content/coverage-badge.svg?guest=1" />
+<a href="https://build.loophabits.org/project.html?projectId=LoopHabitTracker&tab=preport_project1_Coverage__core_&guest=1">
+  <img src="https://build.loophabits.org/app/rest/builds/buildType(id:release)/artifacts/content/coverage-badge.svg?guest=1" />
+</a>
+<a href="https://github.com/iSoron/uhabits/releases/latest">
+  <img src="https://img.shields.io/badge/apk-stable-FF4081.svg" />
+</a>
+<a href="https://build.loophabits.org/app/rest/builds/buildType(id:release)/artifacts/content/loop-dev.apk?guest=1">
+  <img src="https://img.shields.io/badge/apk-nightly-FF4081.svg" />
 </a>
 
 Loop is a simple Android app that helps you create and maintain good habits,

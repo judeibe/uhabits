@@ -147,6 +147,7 @@ public abstract class HabitList implements Iterable<Habit>
         List<Habit> copy = new LinkedList<>();
         for (Habit h : this) copy.add(h);
         for (Habit h : copy) remove(h);
+        observable.notifyListeners();
     }
 
     /**
@@ -161,9 +162,9 @@ public abstract class HabitList implements Iterable<Habit>
     {
         for (Habit h : this)
         {
-            h.getCheckmarks().invalidateNewerThan(0);
-            h.getStreaks().invalidateNewerThan(0);
-            h.getScores().invalidateNewerThan(0);
+            h.getCheckmarks().invalidateNewerThan(Timestamp.ZERO);
+            h.getStreaks().invalidateNewerThan(Timestamp.ZERO);
+            h.getScores().invalidateNewerThan(Timestamp.ZERO);
         }
     }
 

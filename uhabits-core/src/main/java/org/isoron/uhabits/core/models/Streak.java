@@ -20,15 +20,16 @@
 package org.isoron.uhabits.core.models;
 
 import org.apache.commons.lang3.builder.*;
-import org.isoron.uhabits.core.utils.*;
+
+import static org.isoron.uhabits.core.utils.StringUtils.defaultToStringStyle;
 
 public final class Streak
 {
-    private final long start;
+    private final Timestamp start;
 
-    private final long end;
+    private final Timestamp end;
 
-    public Streak(long start, long end)
+    public Streak(Timestamp start, Timestamp end)
     {
         this.start = start;
         this.end = end;
@@ -39,25 +40,25 @@ public final class Streak
         if (this.getLength() != other.getLength())
             return Long.signum(this.getLength() - other.getLength());
 
-        return Long.signum(this.getEnd() - other.getEnd());
+        return compareNewer(other);
     }
 
     public int compareNewer(Streak other)
     {
-        return Long.signum(this.getEnd() - other.getEnd());
+        return end.compare(other.end);
     }
 
-    public long getEnd()
+    public Timestamp getEnd()
     {
         return end;
     }
 
-    public long getLength()
+    public int getLength()
     {
-        return (end - start) / DateUtils.millisecondsInOneDay + 1;
+        return start.daysUntil(end) + 1;
     }
 
-    public long getStart()
+    public Timestamp getStart()
     {
         return start;
     }
@@ -65,9 +66,33 @@ public final class Streak
     @Override
     public String toString()
     {
-        return new ToStringBuilder(this)
+        return new ToStringBuilder(this, defaultToStringStyle())
             .append("start", start)
             .append("end", end)
             .toString();
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Streak streak = (Streak) o;
+
+        return new EqualsBuilder()
+            .append(start, streak.start)
+            .append(end, streak.end)
+            .isEquals();
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return new HashCodeBuilder(17, 37)
+            .append(start)
+            .append(end)
+            .toHashCode();
     }
 }
